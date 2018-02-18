@@ -78,7 +78,7 @@ public:
 	 * @param predicted Vector of predicted landmark observations
 	 * @param observations Vector of landmark observations
 	 */
-	void dataAssociation(std::vector<LandmarkObs> predicted, std::vector<LandmarkObs>& observations);
+	double dataAssociationAndProbCalc(std::vector<LandmarkObs> predicted, std::vector<LandmarkObs>& observations, double std_landmark[]);
 	
 	/**
 	 * updateWeights Updates the weights for each particle based on the likelihood of the 
@@ -96,7 +96,8 @@ public:
 	 *   the new set of particles.
 	 */
 	void resample();
-
+	double MultivariateGaussian(double delta_x, double delta_y, double std_x, double std_y);
+	double CalDistance(double delta_x, double delta_y);
 	/*
 	 * Set a particles list of associations, along with the associations calculated world x,y coordinates
 	 * This can be a very useful debugging tool to make sure transformations are correct and assocations correctly connected
