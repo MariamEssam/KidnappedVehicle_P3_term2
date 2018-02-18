@@ -64,7 +64,7 @@ void ParticleFilter::prediction(double delta_t, double std_pos[], double velocit
 		{
 			temp_x = particles[i].x + (velocity)*(cos(particles[i].theta))*delta_t;
 			temp_y = particles[i].y + (velocity)*(sin(particles[i].theta))*delta_t;
-			temp_theta =yaw_rate*delta_t;
+			temp_theta = particles[i].theta;
 		}
 		else
 		{
@@ -91,9 +91,10 @@ double ParticleFilter::dataAssociationAndProbCalc(std::vector<LandmarkObs> predi
 
 	double product = 1.0;
 	double AssociatedIndex = -1;
-	double min_distance = DBL_MAX;
+	
 	for (int i = 0; i < observations.size(); i++)
 	{
+		double min_distance = DBL_MAX;
 		//find nearest landmark
 		for (int j = 0; j < predicted.size(); j++)
 		{
@@ -136,23 +137,26 @@ void ParticleFilter::updateWeights(double sensor_range, double std_landmark[],
 	//   3.33
 	//   http://planning.cs.uiuc.edu/node99.html
 
-	std::vector<LandmarkObs> transformedObservation = std::vector<LandmarkObs>();
-	//1-Transformatiom to map coordinate
-	double y_p = particles[0].y;
-	double x_p = particles[0].x;
-	double theta = particles[0].theta;
-	for (int i = 0; i < observations.size(); i++)
-	{
-		LandmarkObs _observation;
-		double x_c = observations[i].x;
-		double y_c = observations[i].y;
-		_observation.x = x_p+(cos(theta)*x_c)-(sin(theta)*y_c);
-		_observation.y= y_p + (sin(theta)*x_c) + (cos(theta)*y_c);
-		transformedObservation.push_back(_observation);
-	}
+
 	for (int i = 0; i < particles.size(); i++)
 	{
-		//Get the in-range landmarks
+		std::vector<LandmarkObs> transformedObservation = std::vector<LandmarkObs>();
+		//1-Transformatiom to map coordinate
+		double y_p = particles[i].y;
+		double x_p = particles[i].x;
+		double theta = particles[i].theta;
+
+		for (int i = 0; i < observations.size(); i++)
+		{
+			LandmarkObs _observation;
+			double x_c = observations[i].x;
+			double y_c = observations[i].y;
+			_observation.x = x_p + (cos(theta)*x_c) - (sin(theta)*y_c);
+			_observation.y = y_p + (sin(theta)*x_c) + (cos(theta)*y_c);
+			transformedObservation.push_back(_observation);
+		}
+
+		//2- Get the in-range landmarks
 		vector<LandmarkObs> LandmarksInRange = vector<LandmarkObs>();
 		for (int j = 0; j < map_landmarks.landmark_list.size(); j++)
 		{
@@ -175,7 +179,7 @@ void ParticleFilter::resample() {
 	// TODO: Resample particles with replacement with probability proportional to their weight. 
 	// NOTE: You may find std::discrete_distribution helpful here.
 	//   http://en.cppreference.com/w/cpp/numeric/random/discrete_distribution
-	vector<double> weights=vector<double>();
+	vector<double> weights = vector<double>();
 	vector<Particle> newparticles;
 	double maxweight = -1;
 	for (int i = 0; i<num_particles; i++)
@@ -186,21 +190,23 @@ void ParticleFilter::resample() {
 	}
 	std::random_device                  rand_dev;
 	std::mt19937                        gen(rand_dev());
-	std::uniform_int_distribution<int>  dist(0, num_particles-1);
+	//Generate Random Number
+	std::uniform_int_distribution<int>  dist(0, num_particles - 1);
 	int index = int(dist(gen));
-
+	//Create weight distribution
+	uniform_real_distribution<double> d(0.0, maxweight);
 	double beta = 0.0;
 	for (int i = 0; i < num_particles; i++)
 	{
-		beta += dist(gen) * 2 * maxweight;
+		beta += d(gen) * 2.0* maxweight;
 		while (beta>weights[index])
 		{
 			beta -= weights[index];
 			index = (index + 1) % num_particles;
 		}
-	    newparticles.push_back(particles[index]);
+		newparticles.push_back(particles[index]);
 	}
-	
+
 	particles = newparticles;
 }
 
