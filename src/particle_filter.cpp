@@ -24,7 +24,7 @@ void ParticleFilter::init(double x, double y, double theta, double std[]) {
 	//   x, y, theta and their uncertainties from GPS) and all weights to 1. 
 	// Add random Gaussian noise to each particle.
 	// NOTE: Consult particle_filter.h for more information about this method (and others in this file).
-	num_particles = 100;
+	num_particles = 50;
 	default_random_engine gen;
 	// This line creates a normal (Gaussian) distribution for x.
 	normal_distribution<double> dist_x(x, std[0]);
@@ -34,7 +34,7 @@ void ParticleFilter::init(double x, double y, double theta, double std[]) {
 
 	// This line creates a normal (Gaussian) distribution for theta.
 	normal_distribution<double> dist_theta(theta, std[2]);
-
+	weights.clear();
 	for (int i = 0; i < num_particles; i++)
 	{
 		double sample_x, sample_y, sample_theta;
@@ -47,8 +47,10 @@ void ParticleFilter::init(double x, double y, double theta, double std[]) {
 		p.y = sample_y;
 		p.theta = sample_theta;
 		p.weight = 1;
+		weights.push_back(1);
 		particles.push_back(p);
 	}
+	maxweight = 1;
 	is_initialized = true;
 }
 void ParticleFilter::prediction(double delta_t, double std_pos[], double velocity, double yaw_rate) {
@@ -137,7 +139,8 @@ void ParticleFilter::updateWeights(double sensor_range, double std_landmark[],
 	//   3.33
 	//   http://planning.cs.uiuc.edu/node99.html
 
-
+	weights.clear();
+	maxweight = -1;
 	for (int i = 0; i < particles.size(); i++)
 	{
 		std::vector<LandmarkObs> transformedObservation = std::vector<LandmarkObs>();
@@ -172,6 +175,9 @@ void ParticleFilter::updateWeights(double sensor_range, double std_landmark[],
 
 		}
 		particles[i].weight = dataAssociationAndProbCalc(LandmarksInRange, transformedObservation,std_landmark);
+		if (maxweight < particles[i].weight)
+			maxweight = particles[i].weight;
+		weights.push_back(particles[i].weight);
 	}
 }
 
@@ -179,15 +185,8 @@ void ParticleFilter::resample() {
 	// TODO: Resample particles with replacement with probability proportional to their weight. 
 	// NOTE: You may find std::discrete_distribution helpful here.
 	//   http://en.cppreference.com/w/cpp/numeric/random/discrete_distribution
-	vector<double> weights = vector<double>();
+	
 	vector<Particle> newparticles;
-	double maxweight = -1;
-	for (int i = 0; i<num_particles; i++)
-	{
-		weights.push_back(particles[i].weight);
-		if (maxweight < particles[i].weight)
-			maxweight = particles[i].weight;
-	}
 	std::random_device                  rand_dev;
 	std::mt19937                        gen(rand_dev());
 	//Generate Random Number
